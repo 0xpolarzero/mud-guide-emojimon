@@ -13,6 +13,7 @@ import { Direction } from "./../common.sol";
 interface IMapSystem {
   error ALREADY_SPAWNED(address player);
   error NOT_MOVABLE(address player);
+  error OBSTRUCTED(int32 x, int32 y);
 
   function spawn(int32 x, int32 y) external;
 
