@@ -14,6 +14,7 @@ interface IMapSystem {
   error ALREADY_SPAWNED(address player);
   error NOT_MOVABLE(address player);
   error OBSTRUCTED(int32 x, int32 y);
+  error CANNOT_MOVE_DURING_ENCOUNTER();
 
   function spawn(int32 x, int32 y) external;
 

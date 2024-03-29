@@ -1,8 +1,11 @@
 import { useComponentValue } from '@latticexyz/react';
+import { Entity } from '@latticexyz/recs';
 import { singletonEntity } from '@latticexyz/store-sync/recs';
 import { hexToArray } from '@latticexyz/utils';
 import { GameMap } from './GameMap';
+import { EncounterScreen } from './EncounterScreen';
 import { TerrainType, terrainTypes } from './terrainTypes';
+import { MonsterType, monsterTypes } from './monsterTypes';
 import { useMUD } from './MUDContext';
 import { useKeyboardMovement } from './useKeyboardMovement';
 
@@ -10,10 +13,20 @@ export const GameBoard = () => {
   useKeyboardMovement();
 
   const {
-    components: { MapConfig, Player, Position },
+    components: { Encounter, MapConfig, Monster, Player, Position },
     network: { playerEntity },
     systemCalls: { spawn },
   } = useMUD();
+
+  const encounter = useComponentValue(Encounter, playerEntity);
+  const monsterType = useComponentValue(
+    Monster,
+    encounter ? (encounter.monster as Entity) : undefined
+  )?.value;
+  const monster =
+    monsterType != null && monsterType in MonsterType
+      ? monsterTypes[monsterType as MonsterType]
+      : null;
 
   /* --------------------------------- PLAYER --------------------------------- */
   const canSpawn = useComponentValue(Player, playerEntity)?.value !== true;
@@ -55,6 +68,14 @@ export const GameBoard = () => {
       terrain={terrain}
       onTileClick={canSpawn ? spawn : undefined}
       players={player ? [player] : []}
+      encounter={
+        encounter ? (
+          <EncounterScreen
+            monsterName={monster?.name ?? 'MissingNo'}
+            monsterEmoji={monster?.emoji ?? '💱'}
+          />
+        ) : undefined
+      }
     />
   );
 };

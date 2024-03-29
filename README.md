@@ -9,4 +9,7 @@
 ## Notes
 
 - Use `dataStruct: false` to return a tuple instead of struct (more ergonomic)
+
   - e.g. for `Position` return `(x, y)` instead of `Position` struct
+
+- Use `type: "offchainTable"` to create an offchain table item, which will broadcast to the client without storing data onchain

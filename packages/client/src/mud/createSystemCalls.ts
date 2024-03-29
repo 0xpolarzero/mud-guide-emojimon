@@ -1,17 +1,24 @@
 import { Has, HasValue, getComponentValue, runQuery } from '@latticexyz/recs';
 import { singletonEntity } from '@latticexyz/store-sync/recs';
 import { uuid } from '@latticexyz/utils';
-import { ClientComponents } from './createClientComponents';
 import { SetupNetworkResult } from './setupNetwork';
+import { MonsterCatchResult } from '../monsterCatchResult';
 import { Direction } from '../direction';
+import { ClientComponents } from './createClientComponents';
 
 export type SystemCalls = ReturnType<typeof createSystemCalls>;
 
 export function createSystemCalls(
   { playerEntity, worldContract, waitForTransaction }: SetupNetworkResult,
-  { MapConfig, Obstruction, Player, Position }: ClientComponents
+  {
+    Encounter,
+    MapConfig,
+    MonsterCatchAttempt,
+    Obstruction,
+    Player,
+    Position,
+  }: ClientComponents
 ) {
-  /* --------------------------------- HELPERS -------------------------------- */
   const wrapPosition = (x: number, y: number) => {
     const mapConfig = getComponentValue(MapConfig, singletonEntity);
     if (!mapConfig) {
@@ -27,7 +34,7 @@ export function createSystemCalls(
     return runQuery([Has(Obstruction), HasValue(Position, { x, y })]).size > 0;
   };
 
-  /* --------------------------------- ACTIONS -------------------------------- */
+  /* ---------------------------------- MOVE ---------------------------------- */
   const move = async (direction: Direction) => {
     if (!playerEntity) {
       throw new Error('no player');
@@ -36,6 +43,12 @@ export function createSystemCalls(
     const position = getComponentValue(Position, playerEntity);
     if (!position) {
       console.warn('cannot move without a player position, not yet spawned?');
+      return;
+    }
+
+    const inEncounter = !!getComponentValue(Encounter, playerEntity);
+    if (inEncounter) {
+      console.warn('cannot move while in encounter');
       return;
     }
 
@@ -74,6 +87,7 @@ export function createSystemCalls(
     }
   };
 
+  /* ---------------------------------- SPAWN --------------------------------- */
   const spawn = async (inputX: number, inputY: number) => {
     if (!playerEntity) {
       throw new Error('no player');
@@ -110,14 +124,33 @@ export function createSystemCalls(
     }
   };
 
+  /* ------------------------------- THROW BALL ------------------------------- */
   const throwBall = async () => {
-    // TODO
-    return null as any;
+    const player = playerEntity;
+    if (!player) {
+      throw new Error('no player');
+    }
+
+    const encounter = getComponentValue(Encounter, player);
+    if (!encounter) {
+      throw new Error('no encounter');
+    }
+
+    const tx = await worldContract.write.throwBall();
+    await waitForTransaction(tx);
+
+    const catchAttempt = getComponentValue(MonsterCatchAttempt, player);
+    if (!catchAttempt) {
+      throw new Error('no catch attempt found');
+    }
+
+    return catchAttempt.result as MonsterCatchResult;
   };
 
+  /* ------------------------------ FLEE ENCOUNTER ----------------------------- */
   const fleeEncounter = async () => {
-    // TODO
-    return null as any;
+    const tx = await worldContract.write.flee();
+    await waitForTransaction(tx);
   };
 
   return {
